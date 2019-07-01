@@ -2,26 +2,31 @@ const path =require("path")
 const HmtlPlugin=require("html-webpack-plugin")
 const {CleanWebpackPlugin} = require('clean-webpack-plugin')
 const CopyWebpackPlugin=require("copy-webpack-plugin")
+const Webpack =require("webpack")
+
 
 module.exports = {
-  mode: 'development', //模式
-  entry: path.join(__dirname, '/src/main.js'), //入口文件
+ 
+  entry: {
+    index: path.join(__dirname, '..','/src/main.js'), //多页面应用配置，连同下面的output，html-webpack-plugin
+    other: path.join(__dirname, '..','/src/other.js')
+  },
   output: {
     //出口
-    path: path.join(__dirname, 'dist'),
-    filename: 'bundle.js'
+    path: path.join(__dirname,'..', 'dist'),
+    filename: '[name].js'
   },
-  devServer: {
-    //webpack-dev-server的配置
-    port: 2000,
-    open: true,
-    compress: true
-    // contentBase:"./src"
-  },
+  
   plugins: [
     new HmtlPlugin({
       filename: 'index.html',
-      template: './src/index.html'
+      template: './src/index.html',
+      chunks: ['index']
+    }),
+    new HmtlPlugin({
+      filename: 'other.html',
+      template: './src/other.html',
+      chunks: ['other']
     }),
     new CleanWebpackPlugin(), //每次打包前清除dist文件夹的插件
     new CopyWebpackPlugin([
@@ -30,7 +35,12 @@ module.exports = {
         from: path.join(__dirname, 'assets'),
         to: 'assets'
       }
-    ])
+    ]),
+    new Webpack.ProvidePlugin({
+      //内置插件，将第三方库注入全局作用域
+      $: 'jquery',
+      jquery: 'jquery'
+    })
   ],
   module: {
     rules: [
@@ -69,6 +79,20 @@ module.exports = {
           loader: 'babel-loader'
         },
         exclude: '/node_module'
+      },
+      {
+        test: /\.(htm|html)$/,
+        use: {
+          loader: 'html-withimg-loader' //打包html中的图片
+        },
+        exclude: '/node_module'
+      },
+      {
+        test: require.resolve('jquery'), ////将第三方库注入全局作用域,不起作用，暂且保留
+        use: {
+          loader: 'expose-loader',
+          options: '$'
+        }
       }
     ]
   }
